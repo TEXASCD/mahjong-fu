@@ -236,7 +236,7 @@
       margin-bottom: 8px;
     }
     .ura-note { margin: 4px 0 0; font-size: 13px; color: rgba(247, 241, 228, 0.8); }
-    .fu-fields, .score-fields {
+    .fu-fields, .score-fields, .tsumo-fields {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
@@ -446,6 +446,12 @@
             <label for="point-guess">得点</label>
             <input class="wide" id="point-guess" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="1000">
           </div>
+          <div class="tsumo-fields" id="tsumo-fields" hidden>
+            <label for="child-pay">子家各付</label>
+            <input class="narrow" id="child-pay" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="400">
+            <label for="dealer-pay" id="dealer-pay-label">亲家付</label>
+            <input class="narrow" id="dealer-pay" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="700">
+          </div>
           <div class="nav">
             <button class="btn" type="submit" id="submit-btn">确认</button>
             <button class="btn ghost" type="button" id="peek-btn">看答案</button>
@@ -522,7 +528,7 @@
         </div>
         <div id="sheet-score-body" hidden>
           <h2>番与得点</h2>
-          <p>符数不会提前给出。先自己算出符，再算番和总得点。符的算法见「符数速查」。役满不计符，那一题的符可以填 0。</p>
+          <p>符数不会提前给出。先自己算出符，再算番和总得点。符的算法见「符数速查」。役满不计符，那一题的符可以填 0。自摸还要填写各家实际支付：子家自摸填子家各付和亲家付，亲家自摸只填子家各付。各家支付要加上本场每家 100，供托不加进去。</p>
           <h3>宝牌</h3>
           <ul>
             <li>牌桌上是指示牌。宝牌是它的下一张。</li>
@@ -540,8 +546,8 @@
           <ul>
             <li>基本点 = 符 × 2 的（番 + 2）次方。</li>
             <li>子家荣和 ×4，亲家荣和 ×6，再进到百位。</li>
-            <li>子家自摸：两家子各付基本点进百，亲家付两倍进百。</li>
-            <li>亲家自摸：三家各付两倍基本点进百。</li>
+            <li>子家自摸：两家子各付基本点进百，亲家付两倍进百。这两笔都要填写。</li>
+            <li>亲家自摸：三家都是子家，各付两倍基本点进百。填写子家各付。</li>
             <li>自风东是亲家。</li>
           </ul>
           <h3>满贯以上</h3>
@@ -595,6 +601,10 @@
     const fuGuessEl = document.getElementById("fu-guess");
     const hanGuessEl = document.getElementById("han-guess");
     const pointGuessEl = document.getElementById("point-guess");
+    const tsumoFields = document.getElementById("tsumo-fields");
+    const childPayEl = document.getElementById("child-pay");
+    const dealerPayEl = document.getElementById("dealer-pay");
+    const dealerPayLabel = document.getElementById("dealer-pay-label");
     const sheetFu = document.getElementById("sheet-fu-body");
     const sheetScore = document.getElementById("sheet-score-body");
     const ankanZone = document.getElementById("ankan-zone");
@@ -700,6 +710,7 @@
       prevBtn.hidden = state.mode !== "classic";
       fuFields.hidden = scoring;
       scoreFields.hidden = !scoring;
+      if (!scoring) tsumoFields.hidden = true;
       if (state.mode === "classic") {
         blurbEl.textContent = scoring
           ? "九道例题。自己算符、番和得点，包含红宝牌、表宝牌和里宝牌。"
@@ -896,6 +907,14 @@
       fuGuessEl.value = "";
       hanGuessEl.value = "";
       pointGuessEl.value = "";
+      childPayEl.disabled = false;
+      dealerPayEl.disabled = false;
+      childPayEl.value = "";
+      dealerPayEl.value = "";
+      const pays = scoring && problem.score && problem.score.tsumoPays;
+      tsumoFields.hidden = !pays;
+      dealerPayLabel.hidden = !pays || pays.dealer == null;
+      dealerPayEl.hidden = !pays || pays.dealer == null;
       submitBtn.disabled = false;
       peekBtn.disabled = false;
       resultEl.className = "result";
@@ -903,7 +922,9 @@
       const prompt = document.createElement("p");
       prompt.className = "prompt";
       prompt.textContent = scoring
-        ? "先算符，再算番，最后填写加上本场和供托之后的总得点。"
+        ? (problem.score && problem.score.tsumoPays
+          ? "先算符、番和总得点。自摸还要填各家支付：加上本场每家 100，供托不加进去。"
+          : "先算符，再算番，最后填写加上本场和供托之后的总得点。")
         : "先自己算完再填写。不确定时可以看符数速查，速查不会直接告诉你这手的答案。";
       resultEl.appendChild(prompt);
       (scoring ? fuGuessEl : guessEl).focus();
@@ -975,6 +996,8 @@
       fuGuessEl.disabled = true;
       hanGuessEl.disabled = true;
       pointGuessEl.disabled = true;
+      childPayEl.disabled = true;
+      dealerPayEl.disabled = true;
       submitBtn.disabled = true;
       peekBtn.disabled = true;
       resultEl.className = "result " + outcome;
@@ -1123,15 +1146,26 @@
       }
       if (outcome === "wrong" && guess) {
         const yours = document.createElement("p");
-        yours.textContent = "你填的是 " + guess.fu + " 符、" + guess.han + " 番、" + guess.points + " 点。";
+        let text = "你填的是 " + guess.fu + " 符、" + guess.han + " 番、" + guess.points + " 点。";
+        if (score.tsumoPays) {
+          text += "子家各付 " + guess.childPay + "。";
+          if (score.tsumoPays.dealer != null) text += "亲家付 " + guess.dealerPay + "。";
+        }
+        yours.textContent = text;
         resultEl.appendChild(yours);
-        const judged = Fu.evaluateScoreGuess(score, guess.fu, guess.han, guess.points, state.problem.answer);
+        const judged = Fu.evaluateScoreGuess(score, guess.fu, guess.han, guess.points, state.problem.answer, guess.childPay, guess.dealerPay);
         if (judged.hints.length) {
           const callout = document.createElement("p");
           callout.className = "callout";
           callout.textContent = judged.hints[0];
           resultEl.appendChild(callout);
         }
+      }
+      if (score.tsumoPays) {
+        const payText = score.tsumoPays.dealer == null
+          ? "三家子各付 " + score.tsumoPays.child
+          : "子家各付 " + score.tsumoPays.child + "，亲家付 " + score.tsumoPays.dealer;
+        appendRow("各家支付", payText);
       }
       score.yaku.forEach((item) => {
         appendRow(item.name, item.yakuman ? (item.yakuman >= 2 ? "双倍役满" : "役满") : item.han + " 番");
@@ -1176,13 +1210,20 @@
         const fu = parseGuess(fuGuessEl.value);
         const han = parseGuess(hanGuessEl.value);
         const points = parseGuess(pointGuessEl.value);
+        const pays = state.problem.score.tsumoPays;
+        const childPay = pays ? parseGuess(childPayEl.value) : null;
+        const dealerPay = pays && pays.dealer != null ? parseGuess(dealerPayEl.value) : null;
         if (fu == null || han == null || points == null) {
           const focus = fu == null ? fuGuessEl : han == null ? hanGuessEl : pointGuessEl;
           showPrompt("请填写符、番和得点，都是整数。例如 30 符、1 番、1000 点。", focus);
           return;
         }
-        const judged = Fu.evaluateScoreGuess(state.problem.score, fu, han, points, state.problem.answer);
-        reveal(judged.correct ? "correct" : "wrong", { fu: fu, han: han, points: points });
+        if (pays && (childPay == null || (pays.dealer != null && dealerPay == null))) {
+          showPrompt("自摸还要填写各家支付。子家自摸填子家各付和亲家付；亲家自摸填子家各付。本场每家加 100，供托不加进去。", childPay == null ? childPayEl : dealerPayEl);
+          return;
+        }
+        const judged = Fu.evaluateScoreGuess(state.problem.score, fu, han, points, state.problem.answer, childPay, dealerPay);
+        reveal(judged.correct ? "correct" : "wrong", { fu: fu, han: han, points: points, childPay: childPay, dealerPay: dealerPay });
         return;
       }
       const guess = parseGuess(guessEl.value);
@@ -1272,7 +1313,7 @@
       event.preventDefault();
       go(1);
     });
-    [guessEl, fuGuessEl, hanGuessEl, pointGuessEl].forEach((input) => {
+    [guessEl, fuGuessEl, hanGuessEl, pointGuessEl, childPayEl, dealerPayEl].forEach((input) => {
       input.addEventListener("wheel", (event) => event.preventDefault(), { passive: false });
     });
 

@@ -1386,6 +1386,12 @@
     const honbaPoints = honba * 300;
     const stickPoints = sticks * 1000;
     const total = handPoints + honbaPoints + stickPoints;
+    let tsumoPays = null;
+    if (isTsumo && payments.length) {
+      const extra = honba * 100;
+      if (isDealer) tsumoPays = { child: payments[0].amount + extra, dealer: null };
+      else tsumoPays = { child: payments[0].amount + extra, dealer: payments[1].amount + extra };
+    }
     const names = yaku.map((item) => item.name);
     if (!yakumanMul && doraHan) names.push("表宝牌 " + doraHan);
     if (!yakumanMul && akaHan) names.push("红宝牌 " + akaHan);
@@ -1426,6 +1432,8 @@
       stickPoints: stickPoints,
       total: total,
       payments: payments,
+      tsumoPays: tsumoPays,
+      isTsumo: isTsumo,
       formula: formula,
       headline: names.join(" · "),
       isDealer: isDealer,
@@ -1703,10 +1711,12 @@
     return examples;
   }
 
-  function evaluateScoreGuess(score, fuGuess, hanGuess, pointGuess, answer) {
+  function evaluateScoreGuess(score, fuGuess, hanGuess, pointGuess, answer, childPayGuess, dealerPayGuess) {
     const fuOk = score.fu == null || fuGuess === score.fu;
     const hanOk = hanGuess === score.han;
     const pointOk = pointGuess === score.total;
+    const pays = score.tsumoPays;
+    const payOk = !pays || (childPayGuess === pays.child && (pays.dealer == null || dealerPayGuess === pays.dealer));
     const hints = [];
     if (!fuOk) {
       const fuJudged = answer ? evaluateGuess(answer, fuGuess) : { hints: [] };
@@ -1731,8 +1741,15 @@
       } else {
         hints.push("番数对了。得点先算符 × 2^(番+2)，荣和或自摸之后进到百位。");
       }
+    } else if (!payOk) {
+      const extra = score.honbaPoints ? "，本场每家另加 " + (score.honbaPoints / 3) : "";
+      if (pays.dealer == null) {
+        hints.push("亲家自摸，三家子各付 " + pays.child + extra + "。供托不由各家付。");
+      } else {
+        hints.push("子家自摸，子家各付 " + pays.child + "，亲家付 " + pays.dealer + extra + "。供托不由各家付。");
+      }
     }
-    return { correct: fuOk && hanOk && pointOk, fuOk: fuOk, hanOk: hanOk, pointOk: pointOk, hints: hints };
+    return { correct: fuOk && hanOk && pointOk && payOk, fuOk: fuOk, hanOk: hanOk, pointOk: pointOk, payOk: payOk, hints: hints };
   }
 
   return {
