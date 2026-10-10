@@ -805,6 +805,7 @@
         if (!parts) continue;
         const problem = assemble(parts);
         if (problem.answer.isPinfu && !parts.intentionalPinfu) continue;
+        if (!listYaku(problem).length) continue;
         return problem;
       } catch (err) {
         continue;
