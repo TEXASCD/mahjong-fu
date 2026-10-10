@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>符与得点练习 · 立直麻将</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect rx='8' width='64' height='64' fill='%23f7f1e4'/%3E%3Ctext x='32' y='44' text-anchor='middle' font-size='32' fill='%23b42318' font-family='serif'%3E中%3C/text%3E%3C/svg%3E">
+  <style>
+    :root {
+      --felt: #146846;
+      --felt-deep: #0c3b28;
+      --ink: #1c1915;
+      --paper: #f7f1e4;
+      --gold: #e4c27a;
+      --cinnabar: #b42318;
+      --line: rgba(228, 194, 122, 0.45);
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--paper);
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background:
+        radial-gradient(900px 420px at 15% -10%, rgba(255, 236, 196, 0.16), transparent 50%),
+        linear-gradient(165deg, #1b7a52 0%, var(--felt-deep) 42%, #071910 100%);
+    }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    .wrap {
+      width: min(1180px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 28px 0 48px;
+    }
+    header.top {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: flex-end;
+      margin-bottom: 18px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 32px;
+      font-weight: 650;
+      letter-spacing: 0.04em;
+    }
+    h1 span {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--gold);
+      font-size: 13px;
+      letter-spacing: 0.22em;
+    }
+    .lede {
+      margin: 8px 0 0;
+      max-width: 46em;
+      color: rgba(247, 241, 228, 0.82);
+      line-height: 1.55;
+    }
+    .stats {
+      text-align: right;
+      color: var(--gold);
+      line-height: 1.7;
+      font-variant-numeric: tabular-nums;
+    }
+    .stats strong { color: white; font-weight: 650; }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: 18px;
+      align-items: start;
+    }
+    .panel {
+      background: rgba(6, 28, 18, 0.48);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
+    }
+    .practice { padding: 16px; }
+    .toolbar, .levels, .nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .toolbar { margin-bottom: 10px; }
+    .seg {
+      background: transparent;
+      color: var(--paper);
+      border: 1px solid rgba(247, 241, 228, 0.28);
+      border-radius: 999px;
+      padding: 7px 14px;
+    }
+    .seg[aria-pressed="true"] {
+      background: var(--gold);
+      color: #2a2112;
+      border-color: var(--gold);
+      font-weight: 650;
+    }
+    .blurb {
+      margin: 8px 0 0;
+      color: rgba(247, 241, 228, 0.78);
+      font-size: 14px;
+    }
+    .table {
+      margin-top: 14px;
+      padding: 16px 14px 18px;
+      border-radius: 16px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 28%),
+        var(--felt);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 0 0 36px rgba(0, 0, 0, 0.18);
+    }
+    .kicker {
+      margin: 0 0 10px;
+      color: var(--gold);
+      letter-spacing: 0.08em;
+    }
+    .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .chip {
+      border-radius: 999px;
+      padding: 4px 10px;
+      background: rgba(0, 0, 0, 0.22);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      font-size: 14px;
+    }
+    .zone { margin-top: 12px; }
+    .zone-label {
+      margin: 0 0 6px;
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      color: rgba(247, 241, 228, 0.7);
+    }
+    .board {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: flex-end;
+      gap: 22px;
+    }
+    .hand-block {
+      width: 100%;
+      min-width: 0;
+    }
+    .hand-line {
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: flex-start;
+      justify-content: flex-start;
+      gap: 10px;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+    .meld-row, .tiles, .mini-tiles {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    #rack {
+      flex: 0 0 auto;
+      flex-wrap: nowrap;
+      justify-content: flex-end;
+      min-width: 0;
+      max-width: none;
+      gap: 3px;
+    }
+    #rack .tile,
+    .win-slot .tile {
+      flex: 0 0 45px;
+      width: 45px;
+      min-width: 45px;
+      max-width: 45px;
+      height: 60px;
+    }
+    .win-slot {
+      display: flex;
+      flex: 0 0 auto;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      min-width: 0;
+      padding-left: 10px;
+      border-left: 1px dashed rgba(255, 255, 255, 0.35);
+    }
+    .win-caption { font-size: 12px; letter-spacing: 0.14em; color: var(--gold); }
+    .empty-call { margin: 0; color: rgba(247, 241, 228, 0.75); }
+    .kan-note { margin: 8px 0 0; font-size: 13px; color: rgba(247, 241, 228, 0.8); }
+    .meld { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .tag {
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      color: rgba(247, 241, 228, 0.86);
+    }
+    .tile {
+      width: 45px;
+      height: 60px;
+      border-radius: 5px;
+      background: transparent;
+      box-shadow: 0 8px 14px rgba(0, 0, 0, 0.28);
+      position: relative;
+      overflow: hidden;
+      user-select: none;
+    }
+    .tile img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      pointer-events: none;
+    }
+    .tile img.tile-face {
+      inset: auto;
+      left: 10%;
+      top: 10%;
+      width: 80%;
+      height: 80%;
+    }
+    .tile.win {
+      box-shadow: 0 0 0 2px var(--gold), 0 10px 14px rgba(0, 0, 0, 0.28);
+    }
+    .tile.tiny { width: 30px; height: 40px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12); }
+    .tile.tiny.win { box-shadow: 0 0 0 2px var(--gold); }
+    .dora-line {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 22px;
+      margin-bottom: 8px;
+    }
+    .ura-note { margin: 4px 0 0; font-size: 13px; color: rgba(247, 241, 228, 0.8); }
+    .fu-fields, .score-fields {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .answer input.narrow { width: 72px; }
+    .answer input.wide { width: 120px; }
+    .score-hero { display: flex; gap: 22px; align-items: flex-end; }
+    .score-hero .big-fu { margin: 4px 0 8px; }
+    .answer {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-top: 14px;
+    }
+    .answer label { color: rgba(247, 241, 228, 0.86); }
+    .answer input {
+      width: 96px;
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: var(--paper);
+      color: var(--ink);
+      font-size: 20px;
+      font-variant-numeric: tabular-nums;
+    }
+    .answer input:disabled { opacity: 0.7; }
+    .btn {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      background: var(--gold);
+      color: #2a2112;
+      font-weight: 650;
+    }
+    .btn.ghost {
+      background: transparent;
+      color: var(--paper);
+      border: 1px solid rgba(247, 241, 228, 0.35);
+    }
+    .btn:disabled { opacity: 0.45; cursor: default; }
+    .hint-keys { margin: 8px 0 0; color: rgba(247, 241, 228, 0.62); font-size: 12px; }
+    .result {
+      margin-top: 12px;
+      padding: 14px 14px 12px;
+      border-radius: 14px;
+      background: rgba(247, 241, 228, 0.94);
+      color: var(--ink);
+    }
+    .result.correct { box-shadow: inset 4px 0 0 #1d7a43; }
+    .result.wrong { box-shadow: inset 4px 0 0 var(--cinnabar); }
+    .result.peek { box-shadow: inset 4px 0 0 #9a7430; }
+    .result h2 { margin: 0; font-size: 18px; }
+    .big-fu {
+      margin: 6px 0;
+      font-size: 42px;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+    .big-fu span { font-size: 18px; margin-left: 4px; }
+    .equation {
+      margin: 0 0 8px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: rgba(28, 25, 21, 0.06);
+    }
+    .callout {
+      margin: 0 0 8px;
+      color: var(--cinnabar);
+      font-weight: 650;
+    }
+    .break-row, .note, .prompt { line-height: 1.55; }
+    .break-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px dashed rgba(28, 25, 21, 0.12);
+      padding: 4px 0;
+    }
+    .break-row.zero { color: #6d675e; }
+    .groups { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0; }
+    .group {
+      padding: 6px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(28, 25, 21, 0.06);
+    }
+    .group.hit { outline: 2px solid var(--cinnabar); }
+    .group .tag { color: #5c564c; }
+    .notes { margin: 8px 0 0; padding-left: 1.2em; }
+    .notes li { margin: 4px 0; }
+    .prompt { margin: 0; }
+    .sheet {
+      padding: 16px 16px 12px;
+      position: sticky;
+      top: 12px;
+      max-height: calc(100vh - 24px);
+      overflow: auto;
+      color: var(--paper);
+    }
+    .sheet h2 { margin: 0 0 8px; font-size: 18px; }
+    .sheet h3 { margin: 16px 0 6px; font-size: 15px; color: var(--gold); }
+    .sheet p, .sheet li { line-height: 1.55; color: rgba(247, 241, 228, 0.9); }
+    .sheet ol, .sheet ul { margin: 6px 0; padding-left: 1.2em; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      font-variant-numeric: tabular-nums;
+    }
+    th, td {
+      border-bottom: 1px solid rgba(247, 241, 228, 0.14);
+      padding: 6px 4px;
+      text-align: left;
+    }
+    .sheet .reset {
+      margin-top: 12px;
+    }
+    @media (max-width: 980px) {
+      .layout { grid-template-columns: 1fr; }
+      .sheet { position: static; max-height: none; }
+      header.top { flex-direction: column; align-items: flex-start; }
+      .stats { text-align: left; }
+    }
+    @media (max-width: 640px) {
+      h1 { font-size: 26px; }
+      .tile { width: 36px; height: 48px; }
+      #rack .tile,
+      .win-slot .tile {
+        flex: 0 0 36px;
+        width: 36px;
+        min-width: 36px;
+        max-width: 36px;
+        height: 48px;
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .tile.win { transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <div>
+        <h1><span>立直麻将</span>符与得点练习</h1>
+        <p class="lede">手牌用传统牌面，并且始终排成一行。只算符时只填符。番与得点要自己算符、番和最后得点，并计入红宝牌、表宝牌和里宝牌。</p>
+      </div>
+      <div class="stats" id="stats"></div>
+    </header>
+    <div class="layout">
+      <main class="panel practice">
+        <div class="toolbar" id="taskbar">
+          <button class="seg" type="button" id="task-fu" aria-pressed="true">只算符</button>
+          <button class="seg" type="button" id="task-score" aria-pressed="false">番与得点</button>
+        </div>
+        <div class="toolbar">
+          <button class="seg" type="button" id="mode-random" aria-pressed="true">随机练习</button>
+          <button class="seg" type="button" id="mode-classic" aria-pressed="false">经典例题</button>
+        </div>
+        <div class="levels" id="levels"></div>
+        <p class="blurb" id="blurb"></p>
+        <section class="table" aria-label="和牌牌型">
+          <p class="kicker" id="kicker"></p>
+          <div class="meta" id="meta"></div>
+          <div class="dora-line" id="dora-zone" hidden>
+            <div>
+              <p class="zone-label">表宝牌指示牌</p>
+              <div class="tiles" id="dora-row"></div>
+            </div>
+            <div>
+              <p class="zone-label">里宝牌指示牌</p>
+              <div class="tiles" id="ura-row"></div>
+              <p class="ura-note" id="ura-note"></p>
+            </div>
+          </div>
+          <div class="zone" id="ankan-zone">
+            <p class="zone-label">暗杠</p>
+            <div class="meld-row" id="ankan-row"></div>
+          </div>
+          <div class="board">
+            <div class="hand-block">
+              <p class="zone-label">手牌</p>
+              <div class="hand-line">
+                <div class="tiles" id="rack"></div>
+                <div class="win-slot" id="win-slot"></div>
+              </div>
+            </div>
+            <div id="open-zone">
+              <p class="zone-label">副露</p>
+              <div class="meld-row" id="open-row"></div>
+            </div>
+          </div>
+          <p class="kan-note" id="kan-note" hidden></p>
+        </section>
+        <form class="answer" id="answer-form">
+          <div class="fu-fields" id="fu-fields">
+            <label for="guess">这手是多少符</label>
+            <input id="guess" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="30">
+          </div>
+          <div class="score-fields" id="score-fields" hidden>
+            <label for="fu-guess">符</label>
+            <input class="narrow" id="fu-guess" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="30">
+            <label for="han-guess">番</label>
+            <input class="narrow" id="han-guess" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="1">
+            <label for="point-guess">得点</label>
+            <input class="wide" id="point-guess" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="1000">
+          </div>
+          <div class="nav">
+            <button class="btn" type="submit" id="submit-btn">确认</button>
+            <button class="btn ghost" type="button" id="peek-btn">看答案</button>
+            <button class="btn ghost" type="button" id="prev-btn" hidden>上一题</button>
+            <button class="btn ghost" type="button" id="next-btn">下一题</button>
+          </div>
+        </form>
+        <p class="hint-keys">Enter 确认。看完解析后再按 Enter，或点下一题。</p>
+        <div class="result" id="result" aria-live="polite"></div>
+      </main>
+      <aside class="panel sheet">
+        <div class="toolbar">
+          <button class="seg" type="button" id="sheet-fu" aria-pressed="true">符数速查</button>
+          <button class="seg" type="button" id="sheet-score" aria-pressed="false">番与得点</button>
+        </div>
+        <div id="sheet-fu-body">
+        <h2>符数速查</h2>
+        <p>要填的是进位之后的符。顺序如下：</p>
+        <ol>
+          <li>副底 20</li>
+          <li>和牌方式</li>
+          <li>刻子、杠子</li>
+          <li>雀头</li>
+          <li>听牌</li>
+          <li>向上进位</li>
+          <li>看是不是平和自摸或七对子</li>
+        </ol>
+        <h3>和牌方式</h3>
+        <ul>
+          <li>门前清荣和 +10</li>
+          <li>自摸 +2</li>
+          <li>有副露的荣和 +0</li>
+        </ul>
+        <h3>面子</h3>
+        <table>
+          <thead>
+            <tr><th>面子</th><th>中张</th><th>幺九、字牌</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>明刻（碰）</td><td>2</td><td>4</td></tr>
+            <tr><td>暗刻</td><td>4</td><td>8</td></tr>
+            <tr><td>明杠</td><td>8</td><td>16</td></tr>
+            <tr><td>暗杠</td><td>16</td><td>32</td></tr>
+          </tbody>
+        </table>
+        <p>顺子和吃是 0 符。幺九是一万九万、一筒九筒、一条九条，再加上全部字牌。二到八是中张。</p>
+        <h3>雀头</h3>
+        <ul>
+          <li>三元、场风、自风 +2</li>
+          <li>连风（场风和自风是同一张）+4</li>
+          <li>客风、数牌 +0</li>
+        </ul>
+        <h3>听牌</h3>
+        <ul>
+          <li>两面、双碰 +0</li>
+          <li>边张、嵌张、单骑 +2</li>
+        </ul>
+        <p>边张只有 12 听 3，和 89 听 7。23 听 1、78 听 9 仍是两面。</p>
+        <h3>进位和例外</h3>
+        <ul>
+          <li>个位不是 0，就向上进到十位：22 算 30，34 算 40。</li>
+          <li>平和自摸固定 20，不要进成 30。</li>
+          <li>七对子固定 25，不要进成 30。</li>
+        </ul>
+        <h3>平和</h3>
+        <p>要同时满足：门清、四个顺子、雀头不是役牌、两面听。荣和 30 符，自摸 20 符。有副露，或有暗杠，都不是平和。</p>
+        <h3>容易算错的地方</h3>
+        <ul>
+          <li>暗杠不算副露，门前清还在。</li>
+          <li>双碰和出来的刻子没有碰出去，算暗刻。</li>
+          <li>自摸只加 2 符，不加门前清的 10 符。</li>
+          <li>有副露就没有门前清 10 符，也不能按平和算。</li>
+        </ul>
+        </div>
+        <div id="sheet-score-body" hidden>
+          <h2>番与得点</h2>
+          <p>符数不会提前给出。先自己算出符，再算番和总得点。符的算法见「符数速查」。役满不计符，那一题的符可以填 0。</p>
+          <h3>宝牌</h3>
+          <ul>
+            <li>牌桌上是指示牌。宝牌是它的下一张。</li>
+            <li>万、筒、条：九的下一张是一。二万的指示牌，宝牌是三万。</li>
+            <li>风牌：东、南、西、北、再回到东。</li>
+            <li>三元：白、发、中、再回到白。</li>
+            <li>手牌里每有一张宝牌就加 1 番。两张相同的指示牌会各算一次。</li>
+            <li>有几个杠，就多几张指示牌。</li>
+          </ul>
+          <h3>红宝牌</h3>
+          <p>红五万、红五筒、红五条各加 1 番。红五如果同时又是表宝牌，两份都算。红宝牌不改变符。</p>
+          <h3>里宝牌</h3>
+          <p>只有立直或两立直才翻里宝牌，张数和表宝牌一样。没有立直，即使翻开也不计。</p>
+          <h3>得点</h3>
+          <ul>
+            <li>基本点 = 符 × 2 的（番 + 2）次方。</li>
+            <li>子家荣和 ×4，亲家荣和 ×6，再进到百位。</li>
+            <li>子家自摸：两家子各付基本点进百，亲家付两倍进百。</li>
+            <li>亲家自摸：三家各付两倍基本点进百。</li>
+            <li>自风东是亲家。</li>
+          </ul>
+          <h3>满贯以上</h3>
+          <table>
+            <thead><tr><th></th><th>子家</th><th>亲家</th></tr></thead>
+            <tbody>
+              <tr><td>满贯</td><td>8000</td><td>12000</td></tr>
+              <tr><td>跳满</td><td>12000</td><td>18000</td></tr>
+              <tr><td>倍满</td><td>16000</td><td>24000</td></tr>
+              <tr><td>三倍满</td><td>24000</td><td>36000</td></tr>
+              <tr><td>役满</td><td>32000</td><td>48000</td></tr>
+            </tbody>
+          </table>
+          <ul>
+            <li>5 番起是满贯。6、7 番跳满，8 到 10 番倍满，11、12 番三倍满。</li>
+            <li>不到 5 番，但基本点已经到 2000，也是满贯。40 符 4 番就是这种。</li>
+            <li>30 符 4 番的子家荣和是 7700，不切上满贯。</li>
+            <li>役满、双倍役满、累计役满都不加宝牌，也不看符。</li>
+          </ul>
+          <h3>本场和供托</h3>
+          <ul>
+            <li>每本场在和了点之外加 300。荣和由放铳者付；自摸则三家各加 100。</li>
+            <li>供托里的立直棒，每根加 1000，由牌桌支付，不向另外三家另收。</li>
+            <li>本场不改变番数。</li>
+          </ul>
+        </div>
+        <button class="btn ghost reset" type="button" id="reset-stats">清空练习记录</button>
+      </aside>
+    </div>
+  </div>
+  <script src="engine.js"></script>
+  <script>
+    const Fu = window.MahjongFu;
+    const STAT_KEY = "mahjong-fu-trainer-v1";
+    const fuExamples = Fu.exampleProblems();
+    const scoreExamples = Fu.scoreExamples();
+    const SUIT_FILE = { m: "Man", p: "Pin", s: "Sou" };
+    const HONOR_FILE = ["Ton", "Nan", "Shaa", "Pei", "Haku", "Hatsu", "Chun"];
+
+    const statsEl = document.getElementById("stats");
+    const levelsEl = document.getElementById("levels");
+    const blurbEl = document.getElementById("blurb");
+    const kickerEl = document.getElementById("kicker");
+    const metaEl = document.getElementById("meta");
+    const doraZone = document.getElementById("dora-zone");
+    const doraRow = document.getElementById("dora-row");
+    const uraRow = document.getElementById("ura-row");
+    const uraNote = document.getElementById("ura-note");
+    const fuFields = document.getElementById("fu-fields");
+    const scoreFields = document.getElementById("score-fields");
+    const fuGuessEl = document.getElementById("fu-guess");
+    const hanGuessEl = document.getElementById("han-guess");
+    const pointGuessEl = document.getElementById("point-guess");
+    const sheetFu = document.getElementById("sheet-fu-body");
+    const sheetScore = document.getElementById("sheet-score-body");
+    const ankanZone = document.getElementById("ankan-zone");
+    const ankanRow = document.getElementById("ankan-row");
+    const rackEl = document.getElementById("rack");
+    const winSlot = document.getElementById("win-slot");
+    const openRow = document.getElementById("open-row");
+    const kanNote = document.getElementById("kan-note");
+    const form = document.getElementById("answer-form");
+    const guessEl = document.getElementById("guess");
+    const submitBtn = document.getElementById("submit-btn");
+    const peekBtn = document.getElementById("peek-btn");
+    const prevBtn = document.getElementById("prev-btn");
+    const nextBtn = document.getElementById("next-btn");
+    const resultEl = document.getElementById("result");
+
+    const state = loadState();
+
+    function blankBag() {
+      return { correct: 0, answered: 0, peeked: 0, streak: 0, best: 0, classicIndex: 0 };
+    }
+
+    function loadState() {
+      const blank = { task: "fu", mode: "random", level: "beginner", fu: blankBag(), score: blankBag() };
+      try {
+        const saved = JSON.parse(localStorage.getItem(STAT_KEY) || "null");
+        if (!saved) return blank;
+        if (saved.fu && saved.score) {
+          blank.task = saved.task === "score" ? "score" : "fu";
+          blank.mode = saved.mode === "classic" ? "classic" : "random";
+          blank.level = Fu.LEVELS[saved.level] ? saved.level : "beginner";
+          blank.fu = Object.assign(blankBag(), saved.fu);
+          blank.score = Object.assign(blankBag(), saved.score);
+          return blank;
+        }
+        blank.mode = saved.mode === "classic" ? "classic" : "random";
+        blank.level = Fu.LEVELS[saved.level] ? saved.level : "beginner";
+        blank.fu = Object.assign(blankBag(), {
+          correct: saved.correct || 0,
+          answered: saved.answered || 0,
+          peeked: saved.peeked || 0,
+          streak: saved.streak || 0,
+          best: saved.best || 0,
+          classicIndex: saved.classicIndex || 0,
+        });
+        return blank;
+      } catch (err) {
+        return blank;
+      }
+    }
+
+    function bag() {
+      return state[state.task];
+    }
+
+    function currentExamples() {
+      return state.task === "score" ? scoreExamples : fuExamples;
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STAT_KEY, JSON.stringify({
+          task: state.task,
+          mode: state.mode,
+          level: state.level,
+          fu: state.fu,
+          score: state.score,
+        }));
+      } catch (err) {
+        /* 本地记录写不进去时，练习本身仍然可用。 */
+      }
+    }
+
+    function rateText(stats) {
+      if (!stats.answered) return "还没有提交";
+      return Math.round((stats.correct / stats.answered) * 100) + "%";
+    }
+
+    function renderStats() {
+      const stats = bag();
+      const name = state.task === "score" ? "番与得点" : "只算符";
+      statsEl.innerHTML =
+        name + "<br>正确 <strong>" + stats.correct + "</strong> / " + stats.answered +
+        " · 正确率 <strong>" + rateText(stats) + "</strong><br>连续 <strong>" +
+        stats.streak + "</strong> · 最佳 <strong>" + stats.best + "</strong>";
+    }
+
+    function showSheet(which) {
+      const score = which === "score";
+      sheetFu.hidden = score;
+      sheetScore.hidden = !score;
+      document.getElementById("sheet-fu").setAttribute("aria-pressed", score ? "false" : "true");
+      document.getElementById("sheet-score").setAttribute("aria-pressed", score ? "true" : "false");
+    }
+
+    function renderChrome() {
+      const scoring = state.task === "score";
+      document.getElementById("task-fu").setAttribute("aria-pressed", scoring ? "false" : "true");
+      document.getElementById("task-score").setAttribute("aria-pressed", scoring ? "true" : "false");
+      document.getElementById("mode-random").setAttribute("aria-pressed", state.mode === "random" ? "true" : "false");
+      document.getElementById("mode-classic").setAttribute("aria-pressed", state.mode === "classic" ? "true" : "false");
+      levelsEl.hidden = state.mode !== "random";
+      prevBtn.hidden = state.mode !== "classic";
+      fuFields.hidden = scoring;
+      scoreFields.hidden = !scoring;
+      if (state.mode === "classic") {
+        blurbEl.textContent = scoring
+          ? "九道例题。自己算符、番和得点，包含红宝牌、表宝牌和里宝牌。"
+          : "十三道例题按顺序覆盖平和、进位、副露、杠和七对子。看完解析再下一题。";
+      } else if (scoring) {
+        blurbEl.textContent = Fu.LEVELS[state.level].blurb + " 请自己算符、番和得点。";
+      } else {
+        blurbEl.textContent = Fu.LEVELS[state.level].blurb;
+      }
+      Array.prototype.forEach.call(levelsEl.querySelectorAll("button"), (button) => {
+        button.setAttribute("aria-pressed", button.dataset.level === state.level ? "true" : "false");
+      });
+      showSheet(state.task);
+      renderStats();
+    }
+
+    function tileFile(id, aka) {
+      const suit = id[0];
+      const n = Number(id.slice(1));
+      if (suit === "z") return "tiles/" + HONOR_FILE[n - 1] + ".svg";
+      return "tiles/" + SUIT_FILE[suit] + n + (aka ? "-Dora.svg" : ".svg");
+    }
+
+    function tileNode(id, tiny, isWin, aka) {
+      const tile = document.createElement("div");
+      tile.className = "tile";
+      tile.setAttribute("role", "img");
+      tile.setAttribute("aria-label", (aka ? "红" : "") + Fu.tileLabel(id));
+      if (tiny) tile.classList.add("tiny");
+      if (isWin) tile.classList.add("win");
+      if (aka) tile.classList.add("aka");
+      const sources = ["tiles/Front.svg"];
+      if (id !== "z5") sources.push(tileFile(id, aka));
+      sources.forEach((src, index) => {
+        const img = document.createElement("img");
+        if (index > 0) img.className = "tile-face";
+        img.alt = "";
+        img.draggable = false;
+        img.src = src;
+        tile.appendChild(img);
+      });
+      return tile;
+    }
+
+    function fillTiles(container, ids, akaFlags) {
+      container.replaceChildren();
+      ids.forEach((id, index) => container.appendChild(tileNode(id, false, false, !!(akaFlags && akaFlags[index]))));
+    }
+
+    function renderMeld(meld, kindLabel, akaFlags) {
+      const wrap = document.createElement("div");
+      wrap.className = "meld";
+      const tiles = document.createElement("div");
+      tiles.className = "tiles";
+      Fu.expandTiles(meld).forEach((id, index) => {
+        tiles.appendChild(tileNode(id, false, false, !!(akaFlags && akaFlags[index])));
+      });
+      const tag = document.createElement("div");
+      tag.className = "tag";
+      tag.textContent = kindLabel;
+      wrap.appendChild(tiles);
+      wrap.appendChild(tag);
+      return wrap;
+    }
+
+    function openLabel(meld) {
+      if (meld.type === "sequence") return "吃";
+      if (meld.type === "kan") return "明杠";
+      return "碰";
+    }
+
+    function akaLeft(problem) {
+      const aka = state.task === "score" && problem.aka ? problem.aka : {};
+      return { m5: aka.m5 || 0, p5: aka.p5 || 0, s5: aka.s5 || 0 };
+    }
+
+    function takeAka(left, id) {
+      if (!left[id]) return false;
+      left[id] -= 1;
+      return true;
+    }
+
+    function addChip(text) {
+      const chip = document.createElement("span");
+      chip.className = "chip";
+      chip.textContent = text;
+      metaEl.appendChild(chip);
+    }
+
+    function renderProblem() {
+      const problem = state.problem;
+      const answer = problem.answer;
+      const scoring = state.task === "score";
+      const list = currentExamples();
+      if (state.mode === "classic") {
+        const label = scoring ? "得点例题" : "符数例题";
+        kickerEl.textContent = state.wrapped
+          ? label + "已做完一轮，回到第 1 题"
+          : label + " " + (bag().classicIndex + 1) + " / " + list.length;
+      } else {
+        kickerEl.textContent = (scoring ? "番与得点 · " : "只算符 · ") + Fu.LEVELS[state.level].label;
+      }
+
+      metaEl.replaceChildren();
+      addChip("场风 " + Fu.WIND_NAME[problem.roundWind]);
+      addChip("自风 " + Fu.WIND_NAME[problem.seatWind]);
+      if (scoring) addChip(problem.seatWind === "E" ? "亲家" : "子家");
+      addChip(problem.isTsumo ? "自摸" : "荣和");
+      addChip(answer.menzen ? "门前清" : "有副露");
+      if (scoring) {
+        if (problem.daburu) addChip("两立直");
+        else if (problem.riichi) addChip("立直");
+        if (problem.ippatsu) addChip("一发");
+        if (problem.rinshan) addChip("岭上开花");
+        if (problem.haitei) addChip("海底摸月");
+        if (problem.houtei) addChip("河底捞鱼");
+        if (problem.chankan) addChip("抢杠");
+        if (problem.honba) addChip("本场 " + problem.honba);
+        if (problem.sticks) addChip("供托 " + problem.sticks + " 根");
+        ["m5", "p5", "s5"].forEach((id) => {
+          if (problem.aka && problem.aka[id]) addChip("红" + Fu.tileLabel(id));
+        });
+      }
+
+      const left = akaLeft(problem);
+      const layout = Fu.layoutHand(problem.concealed, problem.winTile);
+      const winAka = takeAka(left, layout.win);
+      const ankanAka = problem.ankans.map((meld) => Fu.expandTiles(meld).map((id) => takeAka(left, id)));
+      const openAka = problem.openMelds.map((meld) => Fu.expandTiles(meld).map((id) => takeAka(left, id)));
+      const rackAka = layout.hand.map((id) => takeAka(left, id));
+
+      ankanRow.replaceChildren();
+      if (problem.ankans.length) {
+        ankanZone.hidden = false;
+        problem.ankans.forEach((meld, index) => {
+          ankanRow.appendChild(renderMeld(meld, answer.menzen ? "暗杠 · 仍算门清" : "暗杠", ankanAka[index]));
+        });
+      } else {
+        ankanZone.hidden = true;
+      }
+
+      fillTiles(rackEl, layout.hand, rackAka);
+      winSlot.replaceChildren();
+      winSlot.appendChild(tileNode(layout.win, false, true, winAka));
+      const caption = document.createElement("div");
+      caption.className = "win-caption";
+      caption.textContent = problem.isTsumo ? "自摸" : "荣和";
+      winSlot.appendChild(caption);
+
+      const openZone = document.getElementById("open-zone");
+      openRow.replaceChildren();
+      if (problem.openMelds.length) {
+        openZone.hidden = false;
+        problem.openMelds.forEach((meld, index) => openRow.appendChild(renderMeld(meld, openLabel(meld), openAka[index])));
+      } else {
+        openZone.hidden = true;
+      }
+
+      if (scoring) {
+        doraZone.hidden = false;
+        doraRow.replaceChildren();
+        (problem.doraIndicators || []).forEach((id) => doraRow.appendChild(tileNode(id, false, false, false)));
+        uraRow.replaceChildren();
+        if (problem.riichi || problem.daburu) {
+          (problem.uraIndicators || []).forEach((id) => uraRow.appendChild(tileNode(id, false, false, false)));
+          uraNote.textContent = "立直和牌，里宝牌要算。宝牌是指示牌的下一张。";
+        } else {
+          uraNote.textContent = "没有立直，不计里宝牌。";
+        }
+      } else {
+        doraZone.hidden = true;
+      }
+
+      const kanCount = problem.ankans.length + problem.openMelds.filter((meld) => meld.type === "kan").length;
+      if (kanCount && scoring) {
+        kanNote.hidden = false;
+        kanNote.textContent = "这手有 " + kanCount + " 个杠，表宝牌指示牌是 " + (kanCount + 1) + " 张。" + ((problem.riichi || problem.daburu) ? "里宝牌同样张数。" : "");
+      } else if (kanCount) {
+        kanNote.hidden = false;
+        kanNote.textContent = "这手有 " + kanCount + " 个杠，牌张比普通和牌多 " + kanCount + " 张。符仍按四个面子加一个雀头计算。";
+      } else if (scoring) {
+        kanNote.hidden = false;
+        kanNote.textContent = "看到的是指示牌。宝牌是它的下一张，不是指示牌本身。";
+      } else {
+        kanNote.hidden = true;
+        kanNote.textContent = "";
+      }
+
+      guessEl.disabled = false;
+      guessEl.value = "";
+      fuGuessEl.disabled = false;
+      hanGuessEl.disabled = false;
+      pointGuessEl.disabled = false;
+      fuGuessEl.value = "";
+      hanGuessEl.value = "";
+      pointGuessEl.value = "";
+      submitBtn.disabled = false;
+      peekBtn.disabled = false;
+      resultEl.className = "result";
+      resultEl.replaceChildren();
+      const prompt = document.createElement("p");
+      prompt.className = "prompt";
+      prompt.textContent = scoring
+        ? "先算符，再算番，最后填写加上本场和供托之后的总得点。"
+        : "先自己算完再填写。不确定时可以看符数速查，速查不会直接告诉你这手的答案。";
+      resultEl.appendChild(prompt);
+      (scoring ? fuGuessEl : guessEl).focus();
+      fitHand();
+    }
+
+    function fitHand() {
+      const line = document.querySelector(".hand-line");
+      line.style.justifyContent = "flex-start";
+      if (line.scrollWidth <= line.clientWidth + 1) line.style.justifyContent = "center";
+    }
+
+    function newProblem() {
+      state.revealed = false;
+      const list = currentExamples();
+      const stats = bag();
+      if (state.mode === "classic") {
+        stats.classicIndex = Math.max(0, Math.min(list.length - 1, stats.classicIndex));
+        state.problem = list[stats.classicIndex];
+      } else if (state.task === "score") {
+        state.problem = Fu.createScoreProblem(state.level);
+        state.wrapped = false;
+      } else {
+        state.problem = Fu.createProblem(state.level);
+        state.wrapped = false;
+      }
+      renderChrome();
+      renderProblem();
+    }
+
+    function parseGuess(text) {
+      const normalized = String(text).trim().replace(/[０-９]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xfee0));
+      if (!/^\d+$/.test(normalized)) return null;
+      return Number(normalized);
+    }
+
+    function markCorrect() {
+      const stats = bag();
+      stats.correct += 1;
+      stats.answered += 1;
+      stats.streak += 1;
+      if (stats.streak > stats.best) stats.best = stats.streak;
+      saveState();
+    }
+
+    function markWrong() {
+      const stats = bag();
+      stats.answered += 1;
+      stats.streak = 0;
+      saveState();
+    }
+
+    function markPeek() {
+      const stats = bag();
+      stats.peeked += 1;
+      stats.streak = 0;
+      saveState();
+    }
+
+    function reveal(outcome, guess) {
+      if (state.revealed) return;
+      state.revealed = true;
+      if (outcome === "correct") markCorrect();
+      else if (outcome === "wrong") markWrong();
+      else markPeek();
+      renderStats();
+
+      guessEl.disabled = true;
+      fuGuessEl.disabled = true;
+      hanGuessEl.disabled = true;
+      pointGuessEl.disabled = true;
+      submitBtn.disabled = true;
+      peekBtn.disabled = true;
+      resultEl.className = "result " + outcome;
+      resultEl.replaceChildren();
+
+      if (state.task === "score") {
+        revealScore(outcome, guess);
+        return;
+      }
+      revealFu(outcome, guess);
+    }
+
+    function revealFu(outcome, guess) {
+      const answer = state.problem.answer;
+      const judged = guess == null ? null : Fu.evaluateGuess(answer, guess);
+      const heading = document.createElement("h2");
+      const title = state.problem.title ? state.problem.title + " · " : "";
+      if (outcome === "correct") heading.textContent = title + "算对了";
+      else heading.textContent = title + answer.fu + " 符";
+      resultEl.appendChild(heading);
+
+      if (state.problem.teach) {
+        const teach = document.createElement("p");
+        teach.textContent = state.problem.teach;
+        resultEl.appendChild(teach);
+      }
+
+      const big = document.createElement("p");
+      big.className = "big-fu";
+      big.append(String(answer.fu));
+      const unit = document.createElement("span");
+      unit.textContent = "符";
+      big.appendChild(unit);
+      resultEl.appendChild(big);
+
+      if (outcome === "wrong") {
+        const yours = document.createElement("p");
+        yours.textContent = "你的答案是 " + guess + " 符。";
+        resultEl.appendChild(yours);
+        if (judged && judged.hints.length) {
+          const callout = document.createElement("p");
+          callout.className = "callout";
+          callout.textContent = judged.hints[0];
+          resultEl.appendChild(callout);
+        }
+      }
+
+      const equation = document.createElement("p");
+      equation.className = "equation";
+      equation.textContent = answer.equation;
+      resultEl.appendChild(equation);
+
+      answer.items.forEach((item) => {
+        const row = document.createElement("div");
+        row.className = "break-row" + (item.fu === 0 ? " zero" : "");
+        const name = document.createElement("span");
+        name.textContent = item.label;
+        const value = document.createElement("span");
+        value.textContent = (item.fu > 0 ? "+" : "") + item.fu;
+        row.append(name, value);
+        resultEl.appendChild(row);
+      });
+
+      const groups = document.createElement("div");
+      groups.className = "groups";
+      answer.groups.forEach((group) => {
+        const card = document.createElement("div");
+        card.className = "group" + (group.containsWin ? " hit" : "");
+        const tiles = document.createElement("div");
+        tiles.className = "mini-tiles";
+        let markedWin = false;
+        group.tiles.forEach((id) => {
+          const mark = group.containsWin && !markedWin && id === state.problem.winTile;
+          if (mark) markedWin = true;
+          tiles.appendChild(tileNode(id, true, mark));
+        });
+        const tag = document.createElement("div");
+        tag.className = "tag";
+        if (state.problem.isChiitoi) tag.textContent = group.containsWin ? "和牌的对子" : "对子";
+        else tag.textContent = group.label + (group.fu > 0 ? " +" + group.fu : " +0");
+        card.append(tiles, tag);
+        groups.appendChild(card);
+      });
+      resultEl.appendChild(groups);
+
+      if (answer.notes.length) {
+        const list = document.createElement("ul");
+        list.className = "notes";
+        answer.notes.forEach((text) => {
+          const item = document.createElement("li");
+          item.textContent = text;
+          list.appendChild(item);
+        });
+        resultEl.appendChild(list);
+      }
+      resultEl.scrollIntoView({ block: "nearest" });
+    }
+
+    function appendRow(name, value) {
+      const row = document.createElement("div");
+      row.className = "break-row";
+      const left = document.createElement("span");
+      left.textContent = name;
+      const right = document.createElement("span");
+      right.textContent = value;
+      row.append(left, right);
+      resultEl.appendChild(row);
+    }
+
+    function revealScore(outcome, guess) {
+      const score = state.problem.score;
+      const heading = document.createElement("h2");
+      const title = state.problem.title ? state.problem.title + " · " : "";
+      const fuText = score.fu == null ? "" : score.fu + " 符 · ";
+      heading.textContent = outcome === "correct" ? title + "算对了" : title + fuText + score.han + " 番 · " + score.total + " 点";
+      resultEl.appendChild(heading);
+      if (state.problem.teach) {
+        const teach = document.createElement("p");
+        teach.textContent = state.problem.teach;
+        resultEl.appendChild(teach);
+      }
+      const hero = document.createElement("div");
+      hero.className = "score-hero";
+      const figures = score.fu == null
+        ? [["han", score.han, "番"], ["points", score.total, "点"]]
+        : [["fu", score.fu, "符"], ["han", score.han, "番"], ["points", score.total, "点"]];
+      figures.forEach((item) => {
+        const big = document.createElement("p");
+        big.className = "big-fu";
+        big.append(String(item[1]));
+        const unit = document.createElement("span");
+        unit.textContent = item[2];
+        big.appendChild(unit);
+        hero.appendChild(big);
+      });
+      resultEl.appendChild(hero);
+      if (score.fu == null) {
+        const given = document.createElement("p");
+        given.textContent = "役满不计符，得点不看符。";
+        resultEl.appendChild(given);
+      } else if (state.problem.answer) {
+        const equation = document.createElement("p");
+        equation.className = "equation";
+        equation.textContent = state.problem.answer.equation;
+        resultEl.appendChild(equation);
+      }
+      if (outcome === "wrong" && guess) {
+        const yours = document.createElement("p");
+        yours.textContent = "你填的是 " + guess.fu + " 符、" + guess.han + " 番、" + guess.points + " 点。";
+        resultEl.appendChild(yours);
+        const judged = Fu.evaluateScoreGuess(score, guess.fu, guess.han, guess.points, state.problem.answer);
+        if (judged.hints.length) {
+          const callout = document.createElement("p");
+          callout.className = "callout";
+          callout.textContent = judged.hints[0];
+          resultEl.appendChild(callout);
+        }
+      }
+      score.yaku.forEach((item) => {
+        appendRow(item.name, item.yakuman ? (item.yakuman >= 2 ? "双倍役满" : "役满") : item.han + " 番");
+      });
+      score.doraDetail.forEach((item) => {
+        appendRow(
+          "表宝牌 指示牌" + Fu.tileLabel(item.indicator) + " → " + Fu.tileLabel(item.dora),
+          "手牌 " + item.count + " 张"
+        );
+      });
+      if (state.problem.riichi || state.problem.daburu) {
+        score.uraDetail.forEach((item) => {
+          appendRow(
+            "里宝牌 指示牌" + Fu.tileLabel(item.indicator) + " → " + Fu.tileLabel(item.dora),
+            "手牌 " + item.count + " 张"
+          );
+        });
+      } else {
+        appendRow("里宝牌", "未立直，不计");
+      }
+      if (score.akaHan) appendRow("红宝牌", score.akaHan + " 番");
+      const equation = document.createElement("p");
+      equation.className = "equation";
+      equation.textContent = score.formula;
+      resultEl.appendChild(equation);
+      resultEl.scrollIntoView({ block: "nearest" });
+    }
+
+    function showPrompt(text, focusEl) {
+      resultEl.className = "result";
+      resultEl.replaceChildren();
+      const prompt = document.createElement("p");
+      prompt.className = "prompt";
+      prompt.textContent = text;
+      resultEl.appendChild(prompt);
+      if (focusEl) focusEl.focus();
+    }
+
+    function submitGuess() {
+      if (state.revealed) return;
+      if (state.task === "score") {
+        const fu = parseGuess(fuGuessEl.value);
+        const han = parseGuess(hanGuessEl.value);
+        const points = parseGuess(pointGuessEl.value);
+        if (fu == null || han == null || points == null) {
+          const focus = fu == null ? fuGuessEl : han == null ? hanGuessEl : pointGuessEl;
+          showPrompt("请填写符、番和得点，都是整数。例如 30 符、1 番、1000 点。", focus);
+          return;
+        }
+        const judged = Fu.evaluateScoreGuess(state.problem.score, fu, han, points, state.problem.answer);
+        reveal(judged.correct ? "correct" : "wrong", { fu: fu, han: han, points: points });
+        return;
+      }
+      const guess = parseGuess(guessEl.value);
+      if (guess == null) {
+        showPrompt("请输入整数符数，例如 30 或 25。", guessEl);
+        return;
+      }
+      const judged = Fu.evaluateGuess(state.problem.answer, guess);
+      reveal(judged.correct ? "correct" : "wrong", guess);
+    }
+
+    function go(step) {
+      if (state.mode === "classic") {
+        const list = currentExamples();
+        const stats = bag();
+        const nextIndex = stats.classicIndex + step;
+        state.wrapped = step > 0 && stats.classicIndex === list.length - 1;
+        stats.classicIndex = (nextIndex + list.length) % list.length;
+        saveState();
+      }
+      newProblem();
+    }
+
+    Object.keys(Fu.LEVELS).forEach((level) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "seg";
+      button.dataset.level = level;
+      button.textContent = Fu.LEVELS[level].label;
+      button.addEventListener("click", () => {
+        if (state.level === level && state.mode === "random") return;
+        state.level = level;
+        state.mode = "random";
+        saveState();
+        newProblem();
+      });
+      levelsEl.appendChild(button);
+    });
+
+    document.getElementById("task-fu").addEventListener("click", () => {
+      if (state.task === "fu") return;
+      state.task = "fu";
+      state.wrapped = false;
+      saveState();
+      newProblem();
+    });
+    document.getElementById("task-score").addEventListener("click", () => {
+      if (state.task === "score") return;
+      state.task = "score";
+      state.wrapped = false;
+      saveState();
+      newProblem();
+    });
+    document.getElementById("sheet-fu").addEventListener("click", () => showSheet("fu"));
+    document.getElementById("sheet-score").addEventListener("click", () => showSheet("score"));
+    document.getElementById("mode-random").addEventListener("click", () => {
+      if (state.mode === "random") return;
+      state.mode = "random";
+      saveState();
+      newProblem();
+    });
+    document.getElementById("mode-classic").addEventListener("click", () => {
+      if (state.mode === "classic") return;
+      state.mode = "classic";
+      state.wrapped = false;
+      saveState();
+      newProblem();
+    });
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      submitGuess();
+    });
+    peekBtn.addEventListener("click", () => reveal("peek", null));
+    nextBtn.addEventListener("click", () => go(1));
+    prevBtn.addEventListener("click", () => go(-1));
+    document.getElementById("reset-stats").addEventListener("click", () => {
+      if (!window.confirm("清空本机的正确率、连续答对和例题进度？")) return;
+      localStorage.removeItem(STAT_KEY);
+      const fresh = loadState();
+      Object.keys(state).forEach((key) => delete state[key]);
+      Object.assign(state, fresh);
+      newProblem();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" || !state.revealed) return;
+      if (event.target === nextBtn || event.target === prevBtn) return;
+      event.preventDefault();
+      go(1);
+    });
+    [guessEl, fuGuessEl, hanGuessEl, pointGuessEl].forEach((input) => {
+      input.addEventListener("wheel", (event) => event.preventDefault(), { passive: false });
+    });
+
+    newProblem();
+  </script>
+</body>
+</html>

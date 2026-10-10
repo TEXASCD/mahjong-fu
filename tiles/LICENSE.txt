@@ -1,0 +1,1 @@
+﻿These tile graphics are from https://github.com/FluffyStuff/riichi-mahjong-tiles and are in the public domain (CC0 1.0).
