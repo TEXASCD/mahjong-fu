@@ -34,11 +34,38 @@
       padding: 28px 0 48px;
     }
     header.top {
-      display: flex;
-      justify-content: space-between;
-      gap: 18px;
-      align-items: flex-end;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px 28px;
+      align-items: start;
       margin-bottom: 18px;
+    }
+    .header-side {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 10px;
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header-actions .btn {
+      padding: 8px 14px;
+      letter-spacing: 0.06em;
+    }
+    .sheet-launch { letter-spacing: 0.16em; }
+    .sr {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
     }
     h1 {
       margin: 0;
@@ -66,12 +93,7 @@
       font-variant-numeric: tabular-nums;
     }
     .stats strong { color: white; font-weight: 650; }
-    .layout {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 320px;
-      gap: 18px;
-      align-items: start;
-    }
+    .layout { display: block; }
     .panel {
       background: rgba(6, 28, 18, 0.48);
       border: 1px solid var(--line);
@@ -330,14 +352,39 @@
     .notes { margin: 8px 0 0; padding-left: 1.2em; }
     .notes li { margin: 4px 0; }
     .prompt { margin: 0; }
-    .sheet {
-      padding: 16px 16px 12px;
-      position: sticky;
-      top: 12px;
-      max-height: calc(100vh - 24px);
-      overflow: auto;
-      color: var(--paper);
+    .sheet-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 28px 16px;
+      background: rgba(4, 16, 10, 0.66);
     }
+    .sheet-dialog {
+      width: min(680px, 100%);
+      max-height: min(860px, calc(100vh - 56px));
+      overflow: auto;
+      padding: 18px 20px 16px;
+      color: var(--paper);
+      background: #0e3324;
+    }
+    .sheet-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: -18px;
+      z-index: 1;
+      margin: -18px -20px 12px;
+      padding: 16px 20px 12px;
+      background: #0e3324;
+      border-bottom: 1px solid rgba(228, 194, 122, 0.2);
+    }
+    .sheet-head .toolbar { margin-bottom: 0; }
+    body.sheet-open { overflow: hidden; }
     .sheet h2 { margin: 0 0 8px; font-size: 18px; }
     .sheet h3 { margin: 16px 0 6px; font-size: 15px; color: var(--gold); }
     .sheet p, .sheet li { line-height: 1.55; color: rgba(247, 241, 228, 0.9); }
@@ -353,14 +400,14 @@
       padding: 6px 4px;
       text-align: left;
     }
-    .sheet .reset {
-      margin-top: 12px;
-    }
     @media (max-width: 980px) {
-      .layout { grid-template-columns: 1fr; }
-      .sheet { position: static; max-height: none; }
-      header.top { flex-direction: column; align-items: flex-start; }
-      .stats { text-align: left; }
+      .sheet-head { position: static; margin: 0 0 12px; padding: 0 0 12px; }
+    }
+    @media (max-width: 760px) {
+      header.top { display: flex; flex-direction: column; align-items: stretch; }
+      .header-side { display: contents; }
+      .header-actions { order: -1; align-self: flex-end; }
+      .stats { text-align: left; margin-top: 4px; }
     }
     @media (max-width: 640px) {
       h1 { font-size: 26px; }
@@ -386,7 +433,13 @@
         <h1><span>立直麻将</span>符与得点练习</h1>
         <p class="lede">手牌用传统牌面，并且始终排成一行。只算符时只填符。番与得点要自己算符、番和最后得点，并计入红宝牌、表宝牌和里宝牌。</p>
       </div>
-      <div class="stats" id="stats"></div>
+      <div class="header-side">
+        <div class="header-actions">
+          <button class="btn ghost" type="button" id="reset-stats">清空练习记录</button>
+          <button class="btn ghost sheet-launch" type="button" id="open-sheet">速查</button>
+        </div>
+        <div class="stats" id="stats"></div>
+      </div>
     </header>
     <div class="layout">
       <main class="panel practice">
@@ -462,11 +515,18 @@
         <p class="hint-keys">Enter 确认。看完解析后再按 Enter，或点下一题。</p>
         <div class="result" id="result" aria-live="polite"></div>
       </main>
-      <aside class="panel sheet">
+    </div>
+  </div>
+  <div class="sheet-overlay" id="sheet-overlay" hidden>
+    <div class="panel sheet-dialog" role="dialog" aria-modal="true" aria-labelledby="sheet-dialog-label">
+      <div class="sheet-head">
         <div class="toolbar">
+          <span class="sr" id="sheet-dialog-label">速查</span>
           <button class="seg" type="button" id="sheet-fu" aria-pressed="true">符数速查</button>
           <button class="seg" type="button" id="sheet-score" aria-pressed="false">番与得点</button>
         </div>
+        <button class="btn ghost" type="button" id="close-sheet">关闭</button>
+      </div>
         <div id="sheet-fu-body">
         <h2>符数速查</h2>
         <p>要填的是进位之后的符。顺序如下：</p>
@@ -574,8 +634,6 @@
             <li>本场不改变番数。</li>
           </ul>
         </div>
-        <button class="btn ghost reset" type="button" id="reset-stats">清空练习记录</button>
-      </aside>
     </div>
   </div>
   <script src="engine.js"></script>
@@ -620,6 +678,9 @@
     const prevBtn = document.getElementById("prev-btn");
     const nextBtn = document.getElementById("next-btn");
     const resultEl = document.getElementById("result");
+    const sheetOverlay = document.getElementById("sheet-overlay");
+    const openSheetBtn = document.getElementById("open-sheet");
+    const closeSheetBtn = document.getElementById("close-sheet");
 
     const state = loadState();
 
@@ -698,6 +759,20 @@
       sheetScore.hidden = !score;
       document.getElementById("sheet-fu").setAttribute("aria-pressed", score ? "false" : "true");
       document.getElementById("sheet-score").setAttribute("aria-pressed", score ? "true" : "false");
+    }
+
+    function openSheet() {
+      showSheet(state.task);
+      sheetOverlay.hidden = false;
+      document.body.classList.add("sheet-open");
+      closeSheetBtn.focus();
+    }
+
+    function closeSheet() {
+      if (sheetOverlay.hidden) return;
+      sheetOverlay.hidden = true;
+      document.body.classList.remove("sheet-open");
+      openSheetBtn.focus();
     }
 
     function renderChrome() {
@@ -1279,6 +1354,11 @@
     });
     document.getElementById("sheet-fu").addEventListener("click", () => showSheet("fu"));
     document.getElementById("sheet-score").addEventListener("click", () => showSheet("score"));
+    openSheetBtn.addEventListener("click", openSheet);
+    closeSheetBtn.addEventListener("click", closeSheet);
+    sheetOverlay.addEventListener("click", (event) => {
+      if (event.target === sheetOverlay) closeSheet();
+    });
     document.getElementById("mode-random").addEventListener("click", () => {
       if (state.mode === "random") return;
       state.mode = "random";
@@ -1308,7 +1388,12 @@
       newProblem();
     });
     document.addEventListener("keydown", (event) => {
-      if (event.key !== "Enter" || !state.revealed) return;
+      if (!sheetOverlay.hidden && event.key === "Escape") {
+        event.preventDefault();
+        closeSheet();
+        return;
+      }
+      if (event.key !== "Enter" || !state.revealed || !sheetOverlay.hidden) return;
       if (event.target === nextBtn || event.target === prevBtn) return;
       event.preventDefault();
       go(1);
