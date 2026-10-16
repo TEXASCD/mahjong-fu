@@ -369,7 +369,32 @@
       padding: 18px 20px 16px;
       color: var(--paper);
       background: #0e3324;
+      scrollbar-width: thin;
+      scrollbar-color: var(--gold) rgba(7, 25, 16, 0.72);
     }
+    .sheet-dialog.wide { width: min(980px, 100%); }
+    .sheet-dialog::-webkit-scrollbar,
+    .point-scroll::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+    .sheet-dialog::-webkit-scrollbar-track,
+    .point-scroll::-webkit-scrollbar-track {
+      background: rgba(7, 25, 16, 0.72);
+      border-radius: 999px;
+    }
+    .sheet-dialog::-webkit-scrollbar-thumb,
+    .point-scroll::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, #f3e2bc, var(--gold) 42%, #a8843e);
+      border: 2px solid #0e3324;
+      border-radius: 999px;
+    }
+    .sheet-dialog::-webkit-scrollbar-thumb:hover,
+    .point-scroll::-webkit-scrollbar-thumb:hover {
+      background: #f7edd4;
+    }
+    .sheet-dialog::-webkit-scrollbar-corner,
+    .point-scroll::-webkit-scrollbar-corner { background: transparent; }
     .sheet-head {
       display: flex;
       justify-content: space-between;
@@ -400,6 +425,57 @@
       padding: 6px 4px;
       text-align: left;
     }
+    .sheet-head .seg { padding: 6px 12px; }
+    .point-scroll {
+      overflow-x: auto;
+      margin-top: 8px;
+      border: 1px solid rgba(228, 194, 122, 0.28);
+      border-radius: 12px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--gold) rgba(7, 25, 16, 0.72);
+    }
+    table.points {
+      width: 100%;
+      min-width: 860px;
+      table-layout: fixed;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 13px;
+    }
+    .points col.han { width: 11%; }
+    .points col.fu-col { width: 12%; }
+    .points th, .points td {
+      text-align: center;
+      vertical-align: middle;
+      height: 44px;
+      padding: 0 2px;
+      border-right: 1px solid rgba(228, 194, 122, 0.14);
+      border-bottom: 1px solid rgba(228, 194, 122, 0.16);
+    }
+    .points thead th {
+      height: 32px;
+      background: #163f2d;
+      color: var(--gold);
+      font-weight: 650;
+      letter-spacing: 0.06em;
+    }
+    .points b, .points small { display: block; white-space: nowrap; line-height: 1.15; }
+    .points b { min-height: 1.15em; font-weight: 650; }
+    .points small { min-height: 1.15em; margin-top: 1px; color: rgba(247, 241, 228, 0.68); font-size: 11px; }
+    .points .dealer { background: rgba(228, 194, 122, 0.1); }
+    .points .child { background: rgba(180, 35, 24, 0.18); }
+    .points .fu {
+      background: rgba(7, 25, 16, 0.55);
+      color: var(--gold);
+      font-weight: 650;
+      white-space: nowrap;
+    }
+    .points .fu span { display: block; min-height: 1.15em; font-weight: 450; font-size: 11px; letter-spacing: 0; }
+    .points .cap { background: rgba(20, 104, 70, 0.72); }
+    .points .child.cap { background: rgba(122, 36, 30, 0.72); }
+    .points .none { color: rgba(247, 241, 228, 0.38); }
+    .points .limit td { background: rgba(7, 25, 16, 0.28); }
+    .points .limit .name { color: var(--gold); letter-spacing: 0.12em; }
     @media (max-width: 980px) {
       .sheet-head { position: static; margin: 0 0 12px; padding: 0 0 12px; }
     }
@@ -518,12 +594,13 @@
     </div>
   </div>
   <div class="sheet-overlay" id="sheet-overlay" hidden>
-    <div class="panel sheet-dialog" role="dialog" aria-modal="true" aria-labelledby="sheet-dialog-label">
+    <div class="panel sheet sheet-dialog" role="dialog" aria-modal="true" aria-labelledby="sheet-dialog-label">
       <div class="sheet-head">
         <div class="toolbar">
           <span class="sr" id="sheet-dialog-label">速查</span>
           <button class="seg" type="button" id="sheet-fu" aria-pressed="true">符数速查</button>
           <button class="seg" type="button" id="sheet-score" aria-pressed="false">番与得点</button>
+          <button class="seg" type="button" id="sheet-points" aria-pressed="false">点数表</button>
         </div>
         <button class="btn ghost" type="button" id="close-sheet">关闭</button>
       </div>
@@ -634,6 +711,195 @@
             <li>本场不改变番数。</li>
           </ul>
         </div>
+        <div id="sheet-points-body" hidden>
+          <h2>点数表</h2>
+          <p>大字是荣和的总得点。括号是自摸时各家支付：亲家自摸只写子家各付；子家自摸写成「子家各付/亲家付」。不含本场和供托。30 符 4 番不切上满贯。</p>
+          <div class="point-scroll">
+            <table class="points">
+              <colgroup>
+                <col class="han" span="4">
+                <col class="fu-col">
+                <col class="han" span="4">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th class="dealer" colspan="4">亲家</th>
+                  <th rowspan="2">符数</th>
+                  <th class="child" colspan="4">子家</th>
+                </tr>
+                <tr>
+                  <th class="dealer">4番</th>
+                  <th class="dealer">3番</th>
+                  <th class="dealer">2番</th>
+                  <th class="dealer">1番</th>
+                  <th class="child">1番</th>
+                  <th class="child">2番</th>
+                  <th class="child">3番</th>
+                  <th class="child">4番</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="dealer"><b></b><small>(2600)</small></td>
+                  <td class="dealer"><b></b><small>(1300)</small></td>
+                  <td class="dealer"><b></b><small>(700)</small></td>
+                  <td class="dealer"><b></b><small>(400)</small></td>
+                  <td class="fu">20<span>平和自摸</span></td>
+                  <td class="child"><b></b><small>(200/400)</small></td>
+                  <td class="child"><b></b><small>(400/700)</small></td>
+                  <td class="child"><b></b><small>(700/1300)</small></td>
+                  <td class="child"><b></b><small>(1300/2600)</small></td>
+                </tr>
+                <tr>
+                  <td class="dealer"><b>9600</b><small>(3200)</small></td>
+                  <td class="dealer"><b>4800</b><small>(1600)</small></td>
+                  <td class="dealer"><b>2400</b><small>(800)</small></td>
+                  <td class="dealer none"><b>—</b><small></small></td>
+                  <td class="fu">25<span>七对子</span></td>
+                  <td class="child none"><b>—</b><small></small></td>
+                  <td class="child"><b>1600</b><small>(400/800)</small></td>
+                  <td class="child"><b>3200</b><small>(800/1600)</small></td>
+                  <td class="child"><b>6400</b><small>(1600/3200)</small></td>
+                </tr>
+                <tr>
+                  <td class="dealer"><b>11600</b><small>(3900)</small></td>
+                  <td class="dealer"><b>5800</b><small>(2000)</small></td>
+                  <td class="dealer"><b>2900</b><small>(1000)</small></td>
+                  <td class="dealer"><b>1500</b><small>(500)</small></td>
+                  <td class="fu">30<span></span></td>
+                  <td class="child"><b>1000</b><small>(300/500)</small></td>
+                  <td class="child"><b>2000</b><small>(500/1000)</small></td>
+                  <td class="child"><b>3900</b><small>(1000/2000)</small></td>
+                  <td class="child"><b>7700</b><small>(2000/3900)</small></td>
+                </tr>
+                <tr>
+                  <td class="dealer cap"><b>12000</b><small>(4000)</small></td>
+                  <td class="dealer"><b>7700</b><small>(2600)</small></td>
+                  <td class="dealer"><b>3900</b><small>(1300)</small></td>
+                  <td class="dealer"><b>2000</b><small>(700)</small></td>
+                  <td class="fu">40<span></span></td>
+                  <td class="child"><b>1300</b><small>(400/700)</small></td>
+                  <td class="child"><b>2600</b><small>(700/1300)</small></td>
+                  <td class="child"><b>5200</b><small>(1300/2600)</small></td>
+                  <td class="child cap"><b>8000</b><small>(2000/4000)</small></td>
+                </tr>
+                <tr>
+                  <td class="dealer cap"><b>12000</b><small>(4000)</small></td>
+                  <td class="dealer"><b>9600</b><small>(3200)</small></td>
+                  <td class="dealer"><b>4800</b><small>(1600)</small></td>
+                  <td class="dealer"><b>2400</b><small>(800)</small></td>
+                  <td class="fu">50<span></span></td>
+                  <td class="child"><b>1600</b><small>(400/800)</small></td>
+                  <td class="child"><b>3200</b><small>(800/1600)</small></td>
+                  <td class="child"><b>6400</b><small>(1600/3200)</small></td>
+                  <td class="child cap"><b>8000</b><small>(2000/4000)</small></td>
+                </tr>
+                <tr>
+                  <td class="dealer cap"><b>12000</b><small>(4000)</small></td>
+                  <td class="dealer"><b>11600</b><small>(3900)</small></td>
+                  <td class="dealer"><b>5800</b><small>(2000)</small></td>
+                  <td class="dealer"><b>2900</b><small>(1000)</small></td>
+                  <td class="fu">60<span></span></td>
+                  <td class="child"><b>2000</b><small>(500/1000)</small></td>
+                  <td class="child"><b>3900</b><small>(1000/2000)</small></td>
+                  <td class="child"><b>7700</b><small>(2000/3900)</small></td>
+                  <td class="child cap"><b>8000</b><small>(2000/4000)</small></td>
+                </tr>
+                <tr>
+                  <td class="dealer cap"><b>12000</b><small>(4000)</small></td>
+                  <td class="dealer cap"><b>12000</b><small>(4000)</small></td>
+                  <td class="dealer"><b>6800</b><small>(2300)</small></td>
+                  <td class="dealer"><b>3400</b><small>(1200)</small></td>
+                  <td class="fu">70<span></span></td>
+                  <td class="child"><b>2300</b><small>(600/1200)</small></td>
+                  <td class="child"><b>4500</b><small>(1200/2300)</small></td>
+                  <td class="child cap"><b>8000</b><small>(2000/4000)</small></td>
+                  <td class="child cap"><b>8000</b><small>(2000/4000)</small></td>
+                </tr>
+                <tr>
+                  <td class="dealer cap"><b>12000</b><small>(4000)</small></td>
+                  <td class="dealer cap"><b>12000</b><small>(4000)</small></td>
+                  <td class="dealer"><b>7700</b><small>(2600)</small></td>
+                  <td class="dealer"><b>3900</b><small>(1300)</small></td>
+                  <td class="fu">80<span></span></td>
+                  <td class="child"><b>2600</b><small>(700/1300)</small></td>
+                  <td class="child"><b>5200</b><small>(1300/2600)</small></td>
+                  <td class="child cap"><b>8000</b><small>(2000/4000)</small></td>
+                  <td class="child cap"><b>8000</b><small>(2000/4000)</small></td>
+                </tr>
+                <tr>
+                  <td class="dealer cap"><b>12000</b><small>(4000)</small></td>
+                  <td class="dealer cap"><b>12000</b><small>(4000)</small></td>
+                  <td class="dealer"><b>8700</b><small>(2900)</small></td>
+                  <td class="dealer"><b>4400</b><small>(1500)</small></td>
+                  <td class="fu">90<span></span></td>
+                  <td class="child"><b>2900</b><small>(800/1500)</small></td>
+                  <td class="child"><b>5800</b><small>(1500/2900)</small></td>
+                  <td class="child cap"><b>8000</b><small>(2000/4000)</small></td>
+                  <td class="child cap"><b>8000</b><small>(2000/4000)</small></td>
+                </tr>
+                <tr>
+                  <td class="dealer cap"><b>12000</b><small>(4000)</small></td>
+                  <td class="dealer cap"><b>12000</b><small>(4000)</small></td>
+                  <td class="dealer"><b>9600</b><small>(3200)</small></td>
+                  <td class="dealer"><b>4800</b><small>(1600)</small></td>
+                  <td class="fu">100<span></span></td>
+                  <td class="child"><b>3200</b><small>(800/1600)</small></td>
+                  <td class="child"><b>6400</b><small>(1600/3200)</small></td>
+                  <td class="child cap"><b>8000</b><small>(2000/4000)</small></td>
+                  <td class="child cap"><b>8000</b><small>(2000/4000)</small></td>
+                </tr>
+                <tr>
+                  <td class="dealer cap"><b>12000</b><small>(4000)</small></td>
+                  <td class="dealer cap"><b>12000</b><small>(4000)</small></td>
+                  <td class="dealer"><b>10600</b><small>(3600)</small></td>
+                  <td class="dealer"><b>5300</b><small>(1800)</small></td>
+                  <td class="fu">110<span></span></td>
+                  <td class="child"><b>3600</b><small>(900/1800)</small></td>
+                  <td class="child"><b>7100</b><small>(1800/3600)</small></td>
+                  <td class="child cap"><b>8000</b><small>(2000/4000)</small></td>
+                  <td class="child cap"><b>8000</b><small>(2000/4000)</small></td>
+                </tr>
+                <tr class="limit">
+                  <td class="dealer cap" colspan="2"><b>12000</b><small>(4000)</small></td>
+                  <td class="name" colspan="2">满贯</td>
+                  <td class="fu">5番<span>基本点2000</span></td>
+                  <td class="name" colspan="2">满贯</td>
+                  <td class="child cap" colspan="2"><b>8000</b><small>(2000/4000)</small></td>
+                </tr>
+                <tr class="limit">
+                  <td class="dealer cap" colspan="2"><b>18000</b><small>(6000)</small></td>
+                  <td class="name" colspan="2">跳满</td>
+                  <td class="fu">6–7番<span></span></td>
+                  <td class="name" colspan="2">跳满</td>
+                  <td class="child cap" colspan="2"><b>12000</b><small>(3000/6000)</small></td>
+                </tr>
+                <tr class="limit">
+                  <td class="dealer cap" colspan="2"><b>24000</b><small>(8000)</small></td>
+                  <td class="name" colspan="2">倍满</td>
+                  <td class="fu">8–10番<span></span></td>
+                  <td class="name" colspan="2">倍满</td>
+                  <td class="child cap" colspan="2"><b>16000</b><small>(4000/8000)</small></td>
+                </tr>
+                <tr class="limit">
+                  <td class="dealer cap" colspan="2"><b>36000</b><small>(12000)</small></td>
+                  <td class="name" colspan="2">三倍满</td>
+                  <td class="fu">11–12番<span></span></td>
+                  <td class="name" colspan="2">三倍满</td>
+                  <td class="child cap" colspan="2"><b>24000</b><small>(6000/12000)</small></td>
+                </tr>
+                <tr class="limit">
+                  <td class="dealer cap" colspan="2"><b>48000</b><small>(16000)</small></td>
+                  <td class="name" colspan="2">役满</td>
+                  <td class="fu">13番<span>以上</span></td>
+                  <td class="name" colspan="2">役满</td>
+                  <td class="child cap" colspan="2"><b>32000</b><small>(8000/16000)</small></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>20 符只有平和自摸，所以这一行没有荣和点数。25 符 1 番不会出现。4 番要从 40 符起才是满贯，30 符 4 番仍是 7700 / 11600。双倍役满按上表再翻一倍。累计役满用役满点，不加宝牌。</p>
+        </div>
     </div>
   </div>
   <script src="engine.js"></script>
@@ -665,6 +931,8 @@
     const dealerPayLabel = document.getElementById("dealer-pay-label");
     const sheetFu = document.getElementById("sheet-fu-body");
     const sheetScore = document.getElementById("sheet-score-body");
+    const sheetPoints = document.getElementById("sheet-points-body");
+    const sheetDialog = document.querySelector(".sheet-dialog");
     const ankanZone = document.getElementById("ankan-zone");
     const ankanRow = document.getElementById("ankan-row");
     const rackEl = document.getElementById("rack");
@@ -754,11 +1022,13 @@
     }
 
     function showSheet(which) {
-      const score = which === "score";
-      sheetFu.hidden = score;
-      sheetScore.hidden = !score;
-      document.getElementById("sheet-fu").setAttribute("aria-pressed", score ? "false" : "true");
-      document.getElementById("sheet-score").setAttribute("aria-pressed", score ? "true" : "false");
+      sheetFu.hidden = which !== "fu";
+      sheetScore.hidden = which !== "score";
+      sheetPoints.hidden = which !== "points";
+      sheetDialog.classList.toggle("wide", which === "points");
+      document.getElementById("sheet-fu").setAttribute("aria-pressed", which === "fu" ? "true" : "false");
+      document.getElementById("sheet-score").setAttribute("aria-pressed", which === "score" ? "true" : "false");
+      document.getElementById("sheet-points").setAttribute("aria-pressed", which === "points" ? "true" : "false");
     }
 
     function openSheet() {
@@ -1354,6 +1624,7 @@
     });
     document.getElementById("sheet-fu").addEventListener("click", () => showSheet("fu"));
     document.getElementById("sheet-score").addEventListener("click", () => showSheet("score"));
+    document.getElementById("sheet-points").addEventListener("click", () => showSheet("points"));
     openSheetBtn.addEventListener("click", openSheet);
     closeSheetBtn.addEventListener("click", closeSheet);
     sheetOverlay.addEventListener("click", (event) => {
